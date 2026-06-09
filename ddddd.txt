@@ -1,0 +1,68 @@
+{
+  "name": "dohabotstudio-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  }
+}
+import express from 'express';
+import cors from 'cors';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+// POST /api/leads - Receive contact form
+app.post('/api/leads', async (req, res) => {
+  try {
+    const { name, company, contact, project_type, message } = req.body;
+
+    if (!name || !contact) {
+      return res.status(400).json({ error: "Name and contact are required" });
+    }
+
+    const { data, error } = await supabase
+      .from('leads')
+      .insert([{ 
+        name, 
+        company, 
+        contact, 
+        project_type, 
+        message 
+      }])
+      .select();
+
+    if (error) throw error;
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Thank you! We'll get back to you soon." 
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error. Please try WhatsApp instead." });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Doha Bot Studio backend running on port ${PORT}`);
+});
